@@ -1,0 +1,39 @@
+{
+  "metadata": {
+    "created_at": "2025-07-03T16:24:40.924842",
+    "version": "1.0",
+    "integration": {
+      "transcripts": 7,
+      "markers": 63,
+      "components": [
+        "whisper_v4_emotion",
+        "frausar_markers",
+        "semantic_grabbers"
+      ]
+    }
+  },
+  "timeline": [],
+  "semantic_threads": [],
+  "emotion_arc": [],
+  "marker_analysis": {
+    "available_markers": [
+      "SHOCK_SURPRISE_DRIFT.txt_MARKER",
+      "RELATIONSHIP_AUTHENTICITY_MARKER_MARKER",
+      "RESONANZ_MATCHING_MARKER_MARKER",
+      "BOUNDARY_SETTING_MARKER_MARKER",
+      "GREETING_FREQUENCY_MARKER_MARKER",
+      "PERMANENT_POSTPONE_MARKER",
+      "AI_BOT_SEMANTIC_DETECT.py_MARKER",
+      "FRIENDLY_FLIRTING_DETECT.py_MARKER",
+      "SEMANTIC_MARKER_RULES_MARKER",
+      "PLAYING_VICTIM_MARKER"
+    ],
+    "recommendation": "Nutze FRAUSAR GUI für detaillierte Analyse"
+  },
+  "integration_points": {
+    "audio_transcription": "✅ WhisperSprecherMatcher V4 mit Emotion",
+    "marker_detection": "✅ FRAUSAR Marker System",
+    "semantic_grabbing": "✅ Semantic Grabber Library",
+    "drift_analysis": "✅ CoSD/MARSAP verfügbar"
+  }
+}
