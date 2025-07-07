@@ -131,6 +131,32 @@ class SuperSemanticProcessor:
                 processed += 1
                 
         return {"processed": processed}
+
+    def process_chat_export(self, export_file: Path) -> Dict[str, Any]:
+        """Verarbeite Text-, Audio- und Bilddateien eines Chat-Exports"""
+        result = self.process_whatsapp_export(export_file)
+
+        folder = export_file.parent
+        audio_files = list(folder.rglob("*.opus")) + list(folder.rglob("*.wav"))
+        image_files = []
+        for ext in ("*.jpg", "*.jpeg", "*.png"):
+            image_files.extend(folder.rglob(ext))
+
+        audio_processed = 0
+        for audio in audio_files:
+            if self._process_audio_file(audio):
+                audio_processed += 1
+
+        image_processed = 0
+        for img in image_files:
+            if self._process_image_file(img):
+                image_processed += 1
+
+        result.update({
+            "audio_processed": audio_processed,
+            "images_processed": image_processed,
+        })
+        return result
     
     def _parse_whatsapp_export(self, export_file: Path) -> List[Dict[str, Any]]:
         """Parse WhatsApp Export Format"""
@@ -208,6 +234,72 @@ class SuperSemanticProcessor:
         except Exception as e:
             logger.error(f"Fehler beim Parsen von {transcript_file}: {e}")
             return None
+
+    def _parse_filename_timestamp(self, file_path: Path) -> datetime:
+        """Versuche Datum und Uhrzeit aus Dateinamen zu extrahieren"""
+        name = file_path.stem
+        patterns = [
+            r"(\d{4}-\d{2}-\d{2})[^\d]*(\d{2}[.-]\d{2}[.-]\d{2})",
+            r"(\d{8})[^\d]*(\d{6})",
+        ]
+        for pat in patterns:
+            m = re.search(pat, name)
+            if m:
+                date_part = m.group(1)
+                time_part = m.group(2).replace(".", ":")
+                if len(date_part) == 8:  # YYYYMMDD
+                    date_part = f"{date_part[:4]}-{date_part[4:6]}-{date_part[6:8]}"
+                try:
+                    return datetime.strptime(f"{date_part} {time_part}", "%Y-%m-%d %H:%M:%S")
+                except ValueError:
+                    continue
+        return datetime.fromtimestamp(file_path.stat().st_mtime)
+
+    def _transcribe_audio_simple(self, audio_path: Path) -> str:
+        """Einfache Transkription mit Whisper falls verfügbar"""
+        try:
+            import whisper
+            model = whisper.load_model("base")
+            result = model.transcribe(str(audio_path), language="de")
+            return result.get("text", "").strip()
+        except Exception as e:
+            logger.warning(f"Transkription fehlgeschlagen für {audio_path}: {e}")
+            return ""
+
+    def _process_audio_file(self, audio_path: Path) -> Optional[SemanticMessage]:
+        """Erstelle semantische Nachricht aus Audiodatei"""
+        transcription = self._transcribe_audio_simple(audio_path)
+        msg_data = {
+            'timestamp': self._parse_filename_timestamp(audio_path),
+            'sender': 'unknown',
+            'content': transcription,
+            'type': 'audio',
+            'metadata': {'file': audio_path.name}
+        }
+        semantic_msg = self._create_semantic_message(msg_data)
+        self.messages[semantic_msg.id] = semantic_msg
+        return semantic_msg
+
+    def _process_image_file(self, image_path: Path) -> Optional[SemanticMessage]:
+        """Erstelle semantische Nachricht aus Bilddatei"""
+        try:
+            with open(image_path, 'rb') as f:
+                data = f.read(2048)
+            avg = sum(data) / len(data) if data else 0
+            description = f"Bild {image_path.name} (avg byte {avg:.1f})"
+        except Exception as e:
+            logger.warning(f"Bildanalyse fehlgeschlagen für {image_path}: {e}")
+            description = f"Bild {image_path.name}"
+        msg_data = {
+            'timestamp': self._parse_filename_timestamp(image_path),
+            'sender': 'unknown',
+            'content': description,
+            'type': 'image',
+            'metadata': {'file': image_path.name}
+        }
+        semantic_msg = self._create_semantic_message(msg_data)
+        self.messages[semantic_msg.id] = semantic_msg
+        return semantic_msg
     
     def _create_semantic_message(self, msg_data: Dict[str, Any]) -> SemanticMessage:
         """Erstelle eine semantische Nachricht mit allen Analysen"""
@@ -591,9 +683,13 @@ def process_everything(
     
     processor = SuperSemanticProcessor()
     
-    # Verarbeite WhatsApp-Export wenn vorhanden
+    # Verarbeite WhatsApp-Export inkl. Medien wenn vorhanden
     if whatsapp_export and whatsapp_export.exists():
-        processor.process_whatsapp_export(whatsapp_export)
+        if whatsapp_export.is_dir():
+            for txt in whatsapp_export.glob("*.txt"):
+                processor.process_chat_export(txt)
+        else:
+            processor.process_chat_export(whatsapp_export)
     
     # Verarbeite Transkripte wenn vorhanden
     if transcript_dir and transcript_dir.exists():

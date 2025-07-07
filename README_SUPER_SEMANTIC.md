@@ -25,7 +25,7 @@ Der Super Semantic Processor ist ein revolutionäres Tool, das deine WhatsApp-Ch
 ### Option 1: Einfacher Start (Empfohlen)
 ```bash
 cd whisper_speaker_matcher
-C
+python3 start_super_semantic.py
 ```
 
 Wähle dann:
@@ -37,13 +37,17 @@ Wähle dann:
 ```bash
 python3 super_semantic_gui.py
 ```
+Die grafische Oberfläche erlaubt es, einen gesamten Chat-Export-Ordner
+(inklusive Text-, Audio- und Bilddateien) auszuwählen und die Analyse
+mit wenigen Klicks zu starten.
 
 ### Option 3: Programmatisch
 ```python
 from super_semantic_processor import process_everything
 
 result = process_everything(
-    whatsapp_export=Path("chat_export.txt"),
+    # Pfad zur Export-Datei **oder** zum Ordner mit allen Medien
+    whatsapp_export=Path("Chat_Export_Ordner"),
     transcript_dir=Path("Transkripte_LLM"),
     output_path=Path("meine_semantik.json")
 )

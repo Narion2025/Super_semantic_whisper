@@ -224,61 +224,28 @@ class SuperSemanticGUI:
         
         try:
             self._log("🚀 Starte Super Semantic Processing...")
-            
-            # Erstelle Processor
-            processor = SuperSemanticProcessor()
-            
-            # Verarbeite WhatsApp wenn vorhanden
-            if self.whatsapp_path.get():
-                wa_path = Path(self.whatsapp_path.get())
-                if wa_path.exists():
-                    self._log(f"📱 Verarbeite WhatsApp-Export: {wa_path.name}")
-                    result = processor.process_whatsapp_export(wa_path)
-                    self._log(f"✅ {result['processed']} WhatsApp-Nachrichten verarbeitet")
-                else:
-                    self._log("⚠️ WhatsApp-Export nicht gefunden!")
-                    
-            # Verarbeite Transkripte wenn vorhanden
-            if self.transcript_path.get():
-                trans_path = Path(self.transcript_path.get())
-                if trans_path.exists():
-                    self._log(f"🎤 Verarbeite Transkripte aus: {trans_path.name}")
-                    result = processor.process_audio_transcripts(trans_path)
-                    self._log(f"✅ {result['processed']} Audio-Transkripte verarbeitet")
-                else:
-                    self._log("⚠️ Transkript-Ordner nicht gefunden!")
-                    
-            # Generiere Output
-            self._log("🔮 Analysiere semantische Strukturen...")
+
+            wa = Path(self.whatsapp_path.get()) if self.whatsapp_path.get() else None
+            trans = Path(self.transcript_path.get()) if self.transcript_path.get() else None
             output_path = Path(self.output_path.get())
-            
-            # Führe Analysen durch
-            processor.analyze_relationships()
-            self._log(f"🔗 {len(processor.relationships)} Beziehungen gefunden")
-            
-            processor.identify_semantic_threads()
-            self._log(f"🧵 {len(processor.semantic_threads)} semantische Fäden identifiziert")
-            
-            processor.calculate_emotional_arc()
-            if processor.emotional_arc:
-                self._log(f"📈 Emotionaler Verlauf: {processor.emotional_arc.overall_trend}")
-            
-            # Generiere Datei
-            self._log("💾 Erstelle Super-Semantic-File...")
-            result = processor.generate_super_semantic_file(output_path)
-            
+
+            result = process_everything(
+                whatsapp_export=wa,
+                transcript_dir=trans,
+                output_path=output_path
+            )
+
             self._log("✨ FERTIG! Magie vollbracht!")
             self._log(f"📄 Ausgabe gespeichert: {output_path}")
             self._log(f"📄 Zusammenfassung: {output_path.with_suffix('.summary.md')}")
-            
-            # Zeige Statistiken
+
             stats = result['analysis_summary']
             self._log("\n📊 STATISTIKEN:")
             self._log(f"  - Nachrichten: {result['metadata']['total_messages']}")
             self._log(f"  - Marker gefunden: {stats['marker_statistics']['total_markers_found']}")
             self._log(f"  - Emotionale Valenz: {stats['emotional_statistics']['average_valence']:.2f}")
             self._log(f"  - Semantische Fäden: {stats['thread_statistics']['total_threads']}")
-            
+
             self.status_var.set("✅ Erfolgreich abgeschlossen!")
             
             # Frage ob öffnen
