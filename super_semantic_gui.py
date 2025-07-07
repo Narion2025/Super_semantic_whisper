@@ -69,11 +69,11 @@ class SuperSemanticGUI:
         input_frame = ttk.LabelFrame(main_frame, text="📥 Eingabe-Dateien", padding="10")
         input_frame.pack(fill="x", pady=10)
         
-        # WhatsApp Export
+        # Chat-Export
         wa_frame = ttk.Frame(input_frame)
         wa_frame.pack(fill="x", pady=5)
         
-        ttk.Label(wa_frame, text="WhatsApp-Export:").pack(side="left", padx=5)
+        ttk.Label(wa_frame, text="Chat-Export (TXT):").pack(side="left", padx=5)
         ttk.Entry(wa_frame, textvariable=self.whatsapp_path, width=50).pack(side="left", padx=5)
         ttk.Button(
             wa_frame, 
@@ -164,9 +164,9 @@ class SuperSemanticGUI:
         self.root.rowconfigure(1, weight=1)
         
     def _browse_whatsapp(self):
-        """WhatsApp-Export auswählen"""
+        """Chat-Export-Textdatei auswählen"""
         filename = filedialog.askopenfilename(
-            title="WhatsApp-Export auswählen",
+            title="Chat-Export auswählen",
             filetypes=[("Text files", "*.txt"), ("All files", "*.*")]
         )
         if filename:
@@ -228,15 +228,17 @@ class SuperSemanticGUI:
             # Erstelle Processor
             processor = SuperSemanticProcessor()
             
-            # Verarbeite WhatsApp wenn vorhanden
+            # Verarbeite Chat-Export wenn vorhanden
             if self.whatsapp_path.get():
                 wa_path = Path(self.whatsapp_path.get())
                 if wa_path.exists():
-                    self._log(f"📱 Verarbeite WhatsApp-Export: {wa_path.name}")
-                    result = processor.process_whatsapp_export(wa_path)
-                    self._log(f"✅ {result['processed']} WhatsApp-Nachrichten verarbeitet")
+                    self._log(f"📱 Verarbeite Chat-Export: {wa_path.name}")
+                    result = processor.process_chat_export(wa_path)
+                    self._log(
+                        f"✅ {result['processed']} Nachrichten & Medien verarbeitet"
+                    )
                 else:
-                    self._log("⚠️ WhatsApp-Export nicht gefunden!")
+                    self._log("⚠️ Chat-Export nicht gefunden!")
                     
             # Verarbeite Transkripte wenn vorhanden
             if self.transcript_path.get():

@@ -7,7 +7,7 @@ Der Super Semantic Processor ist ein revolutionäres Tool, das deine WhatsApp-Ch
 ## ✨ Features
 
 ### 🎯 Kern-Features
-- **📱 WhatsApp-Export Analyse**: Verarbeitet komplette Chat-Verläufe
+- **📱 Chat-Export Analyse**: Verarbeitet komplette Chat-Verläufe inkl. Medien
 - **🎤 Audio-Integration**: Transkribiert und analysiert Sprachnachrichten mit Emotionen
 - **🎭 Emotionale Analyse**: Erkennt emotionale Verläufe und Wendepunkte
 - **🏷️ Marker-System**: Nutzt 63+ semantische Marker zur Mustererkennung
@@ -43,7 +43,8 @@ python3 super_semantic_gui.py
 from super_semantic_processor import process_everything
 
 result = process_everything(
-    whatsapp_export=Path("chat_export.txt"),
+    # Pfad zur Export-Datei **oder** zum Ordner mit allen Medien
+    whatsapp_export=Path("Chat_Export_Ordner"),
     transcript_dir=Path("Transkripte_LLM"),
     output_path=Path("meine_semantik.json")
 )
@@ -67,8 +68,8 @@ result = process_everything(
 
 ## 📥 Input-Formate
 
-### WhatsApp-Export
-Standard WhatsApp Chat-Export (.txt):
+### Chat-Export
+Standard WhatsApp Chat-Export (.txt) mit zugehörigen Audio- und Bilddateien im selben Ordner:
 ```
 [28.06.24, 14:23:15] Max: Hey! Wie geht's?
 [28.06.24, 14:24:03] Anna: Super, danke! 😊
