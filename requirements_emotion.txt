@@ -23,6 +23,8 @@ seaborn>=0.11.0    # Für emotionale Diagramme
 # NLP-Erweiterungen
 nltk>=3.8
 spacy>=3.4.0
+pillow>=11.0.0
+pytesseract>=0.3.10
 
 # Installation von zusätzlichen NLTK-Daten:
 # python -c "import nltk; nltk.download('vader_lexicon'); nltk.download('punkt')" 
