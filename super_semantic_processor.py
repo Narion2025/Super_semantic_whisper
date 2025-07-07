@@ -283,6 +283,85 @@ class SuperSemanticProcessor:
         
         valence = (pos_count - neg_count) / max(pos_count + neg_count, 1)
         msg.emotion = {'valence': valence, 'method': 'fallback'}
+
+    # ------------------------------------------------------------------
+    # Neue Funktionen zur Verarbeitung von Bildern und kompletten Export-
+    # Ordnern. Dadurch werden Text-, Audio- und Bilddateien gemeinsam
+    # erkannt und verarbeitet.
+    # ------------------------------------------------------------------
+
+    def process_image_files(self, image_dir: Path) -> Dict[str, Any]:
+        """Verarbeite alle Bilder in einem Ordner"""
+        logger.info(f"🖼️  Verarbeite Bilder aus: {image_dir}")
+
+        processed = 0
+        for ext in ("*.png", "*.jpg", "*.jpeg", "*.gif"):
+            for image_file in image_dir.rglob(ext):
+                msg = self._parse_image_file(image_file)
+                if msg:
+                    semantic_msg = self._create_semantic_message(msg)
+                    self.messages[semantic_msg.id] = semantic_msg
+                    processed += 1
+
+        return {"processed": processed}
+
+    def _parse_image_file(self, image_path: Path) -> Optional[Dict[str, Any]]:
+        """Extrahiere Basisinformationen aus einem Bild"""
+        try:
+            from PIL import Image
+            import pytesseract
+
+            img = Image.open(image_path)
+            width, height = img.size
+            brightness = sum(img.convert("L").getdata()) / (width * height * 255)
+
+            ocr_text = ""
+            try:
+                ocr_text = pytesseract.image_to_string(img)
+            except Exception as e:
+                logger.warning(f"OCR fehlgeschlagen für {image_path.name}: {e}")
+
+            return {
+                'timestamp': datetime.fromtimestamp(image_path.stat().st_mtime),
+                'sender': self._infer_sender_from_name(image_path.name),
+                'content': ocr_text.strip() or '[Bild]',
+                'type': 'image',
+                'emotion': {'brightness': brightness},
+                'metadata': {'file': image_path.name}
+            }
+        except Exception as e:
+            logger.error(f"Fehler beim Analysieren von {image_path}: {e}")
+            return None
+
+    def _infer_sender_from_name(self, name: str) -> str:
+        """Versuche, den Sender aus dem Dateinamen zu ermitteln"""
+        match = re.search(r'(Ben|Zoe|Max|Anna|[A-Z][a-z]+)', name)
+        return match.group(1) if match else 'unknown'
+
+    def process_export_folder(self, export_path: Path) -> Dict[str, Any]:
+        """Verarbeite einen kompletten Chat-Export-Ordner"""
+        logger.info(f"📦 Verarbeite Export-Ordner: {export_path}")
+
+        counts = {"text": 0, "audio": 0, "images": 0}
+
+        for txt in export_path.rglob("*.txt"):
+            res = self.process_whatsapp_export(txt)
+            counts["text"] += res.get("processed", 0)
+
+        for transcript_file in export_path.rglob("*_emotion_transkript.md"):
+            msg = self._parse_emotion_transcript(transcript_file)
+            if msg:
+                semantic_msg = self._create_semantic_message(msg)
+                self.messages[semantic_msg.id] = semantic_msg
+                counts["audio"] += 1
+
+        img_res = self.process_image_files(export_path)
+        counts["images"] += img_res.get("processed", 0)
+
+        logger.info(
+            f"📊 Export verarbeitet: {counts['text']} Text, {counts['audio']} Audio, {counts['images']} Bilder"
+        )
+        return counts
     
     def analyze_relationships(self):
         """Analysiere Beziehungen zwischen Nachrichten"""
@@ -585,16 +664,21 @@ class SuperSemanticProcessor:
 def process_everything(
     whatsapp_export: Optional[Path] = None,
     transcript_dir: Optional[Path] = None,
+    export_folder: Optional[Path] = None,
     output_path: Path = Path("super_semantic_output.json")
 ) -> Dict[str, Any]:
     """Verarbeite alles und erstelle Super-Semantic-File"""
     
     processor = SuperSemanticProcessor()
     
+    # Verarbeite Export-Ordner, falls angegeben
+    if export_folder and export_folder.exists():
+        processor.process_export_folder(export_folder)
+
     # Verarbeite WhatsApp-Export wenn vorhanden
     if whatsapp_export and whatsapp_export.exists():
         processor.process_whatsapp_export(whatsapp_export)
-    
+
     # Verarbeite Transkripte wenn vorhanden
     if transcript_dir and transcript_dir.exists():
         processor.process_audio_transcripts(transcript_dir)
